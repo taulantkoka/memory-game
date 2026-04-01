@@ -16,7 +16,7 @@ The key modelling choice is deterministic LRU eviction, which keeps both players
 
 1. **Greedy matching is strictly optimal** under shared bounded memory. If you know where a pair is, take it immediately. (Unlike Zwick's model, where holding pairs in reserve can be strategic.)
 
-2. **The optimal strategy is conservative:** flip two unknown cards only when $k \leq 1$; otherwise flip one unknown and waste the second flip on a known card. Never pass. This is the "defensive" strategy that [Kilian (2025)](https://samuelkilian.de/about.html) found empirically.
+2. **The optimal strategy is conservative:** flip two unknown cards only when $k \leq 1$; otherwise flip one unknown and waste the second flip on a known card. Never pass. 
 
 3. **The bounded-memory strategy strictly dominates Zwick's** when memory is finite. The advantage grows with board size: at $n = 36$ (72 cards), the bounded-memory player gains ~3 pairs over a Zwick opponent.
 
