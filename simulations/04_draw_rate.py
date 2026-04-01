@@ -20,7 +20,7 @@ def savefig(name):
 # ═══════════════════════════════════════════════════════════════
 # COMPUTE STRATEGY TABLES
 # ═══════════════════════════════════════════════════════════════
-def compute_miller_values(N_max, M):
+def compute_bounded_values(N_max, M):
     if M is None: M = 2*N_max+10
     e = {(0,0): Fraction(0)}; opt = {}
     for n in range(1, N_max+1):
@@ -69,7 +69,7 @@ M_values = list(range(3, 21)) + [25, 30, 40]
 print("Computing strategy tables...")
 TABLES = {}
 for M in M_values:
-    _, opt = compute_miller_values(N, M)
+    _, opt = compute_bounded_values(N, M)
     TABLES[M] = opt
 print(f"  {len(M_values)} tables computed")
 
@@ -183,7 +183,7 @@ def run_point(n, M, table, ng, seed, label):
 # ═══════════════════════════════════════════════════════════════
 # EXPERIMENT: Draw rate vs M for each board size
 # ═══════════════════════════════════════════════════════════════
-ng = 10000
+ng = 100000
 board_sizes = [8, 12, 16, 24, 36]
 
 jobs = []

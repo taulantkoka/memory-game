@@ -17,7 +17,7 @@ for any capacity M, including M=∞ (recovers Zwick exactly).
 from fractions import Fraction
 import sys
 
-def compute_miller_values(N_max, M):
+def compute_bounded_values(N_max, M):
     """
     Compute exact game values for Memory with capacity M.
     
@@ -117,8 +117,8 @@ def compute_miller_values(N_max, M):
                 # Actually in Zwick, card2 "inspected but immediately removed" doesn't count.
                 # The convention: after removing a pair, inspected count decreases appropriately.
                 #
-                # For Miller at k < M: same as Zwick, state is (n-1, k)
-                # For Miller at k = M: card1 causes eviction (k stays M), then pair removed.
+                # For bounded at k < M: same as Zwick, state is (n-1, k)
+                # For bounded at k = M: card1 causes eviction (k stays M), then pair removed.
                 #   Memory had M (after eviction from card1), card2 matches card1.
                 #   Remove card1 from memory: M-1. Card2 was never in memory.
                 #   State: (n-1, M-1)
@@ -132,7 +132,7 @@ def compute_miller_values(N_max, M):
                 # Auto-take (card2 matches known, not card1): opponent takes pair
                 # Memory: card1 is in memory, card2 observed → match with X in memory
                 # X and card2 removed. Card1 stays.
-                # Zwick: state (n-1, k). In Miller at k=M: 
+                # Zwick: state (n-1, k). In bounded at k=M: 
                 #   After card1 (eviction): M entries. Card2 matches X, both removed: M-1.
                 #   But wait, card2 also briefly observed. In our convention: match detected
                 #   before card2 enters memory. So memory: M-1 (X removed). Card2 never stored.
@@ -259,7 +259,7 @@ print("=" * 70)
 print("VERIFICATION: M=∞ vs Zwick Tables")
 print("=" * 70)
 
-e_inf, opt_inf = compute_miller_values(15, None)
+e_inf, opt_inf = compute_bounded_values(15, None)
 
 print("\nOptimal moves (should match Zwick Table 2):")
 expected_moves = {
@@ -284,7 +284,7 @@ print(f"\n  {'ALL MATCH' if all_match else 'MISMATCH'}")
 # MAIN: Compute for various M values
 # ═══════════════════════════════════════════════════════════════
 print("\n" + "=" * 70)
-print("MILLER VALUES: Optimal strategy for finite M")
+print("BOUNDED-MEMORY VALUES: Optimal strategy for finite M")
 print("=" * 70)
 
 N_max = 15
@@ -295,7 +295,7 @@ for M in [3, 5, 7, 9, 12, 20, None]:
     print(f"  {M_label}")
     print(f"{'─'*70}")
     
-    e, opt = compute_miller_values(N_max, M)
+    e, opt = compute_bounded_values(N_max, M)
     
     # Optimal moves
     print(f"\n  Optimal moves:")
@@ -314,12 +314,12 @@ for M in [3, 5, 7, 9, 12, 20, None]:
     
     # Compare with Zwick
     if M is not None:
-        print(f"\n  Advantage comparison (Miller M={M} vs Zwick M=∞):")
+        print(f"\n  Advantage comparison (Bounded M={M} vs Zwick M=∞):")
         for n in [6, 8, 10, 12]:
-            v_miller = float(e.get((n, 0), 0))
+            v_bounded = float(e.get((n, 0), 0))
             v_zwick = float(e_inf.get((n, 0), 0))
-            ratio = v_miller / v_zwick if v_zwick != 0 else float('inf')
-            print(f"    n={n:2d}: Miller={v_miller:+.6f}  Zwick={v_zwick:+.6f}  "
+            ratio = v_bounded / v_zwick if v_zwick != 0 else float('inf')
+            print(f"    n={n:2d}: Bounded={v_bounded:+.6f}  Zwick={v_zwick:+.6f}  "
                   f"ratio={ratio:.2f}x")
 
 
@@ -342,7 +342,7 @@ print("─" * (5 + 12 * len(n_values)))
 for M in M_values:
     M_label = f"{M:5d}" if M is not None else "  inf"
     N = max(n_values)
-    e, _ = compute_miller_values(N, M)
+    e, _ = compute_bounded_values(N, M)
     print(f"{M_label}", end="")
     for n in n_values:
         val = e.get((n, 0), None)

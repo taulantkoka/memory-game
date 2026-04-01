@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Asymmetric Memory: What if players have different capacities?
-Each player uses their own Miller-optimal strategy (computed for their M).
+Each player uses their own Bounded-optimal strategy (computed for their M).
 Each player has their own memory (capacity M1 vs M2).
 
 NOTE: With asymmetric memory, players no longer have identical memory.
@@ -27,7 +27,7 @@ def savefig(name):
 # ═══════════════════════════════════════════════════════════════
 # COMPUTE STRATEGY TABLES FOR EACH M
 # ═══════════════════════════════════════════════════════════════
-def compute_miller_values(N_max, M):
+def compute_bounded_values(N_max, M):
     if M is None: M = 2*N_max+10
     e = {(0,0): Fraction(0)}; opt = {}
     for n in range(1, N_max+1):
@@ -77,7 +77,7 @@ print("Computing strategy tables for each M...")
 TABLES = {}
 VALUES = {}
 for M in M_values:
-    e, opt = compute_miller_values(N, M)
+    e, opt = compute_bounded_values(N, M)
     TABLES[M] = opt
     VALUES[M] = e
     print(f"  M={M:2d}: done")
@@ -197,7 +197,7 @@ def run_point(n, M1, M2, t1, t2, ng, seed, label):
 # ═══════════════════════════════════════════════════════════════
 # EXPERIMENT 1: Full M1 × M2 matrix at fixed board sizes
 # ═══════════════════════════════════════════════════════════════
-ng = 10000
+ng = 100000
 test_Ms = [3, 5, 7, 9, 12, 20]
 board_sizes = [8, 12, 16, 24]
 
@@ -286,7 +286,7 @@ for label, n, M1, M2, r in res2:
 # ── Fig 1: Heatmap matrices ──
 fig1, axes1 = plt.subplots(1, len(board_sizes), figsize=(6*len(board_sizes), 5))
 fig1.suptitle(f'Asymmetric Memory: P1 Expected Gain\n'
-              f'Each player uses their own Miller-optimal strategy | {ng} games',
+              f'Each player uses their own Bounded-optimal strategy | {ng} games',
               fontsize=14, fontweight='bold')
 
 for idx, n in enumerate(board_sizes):
@@ -375,7 +375,7 @@ ax3.axvline(7, color='red', ls=':', alpha=0.3, lw=2, label="P2 has M=7")
 ax3.set_xlabel('P1 memory capacity M₁ (P2 fixed at M₂=7)', fontsize=12)
 ax3.set_ylabel('P1 expected gain (pairs)', fontsize=12)
 ax3.set_title('How Much Does Better Memory Help?\n'
-              'P1 varies, P2 fixed at M=7, both play Miller-optimal',
+              'P1 varies, P2 fixed at M=7, both play Bounded-optimal',
               fontsize=14, fontweight='bold')
 ax3.legend(fontsize=11); ax3.grid(True, alpha=0.2)
 plt.tight_layout()

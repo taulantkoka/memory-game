@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Miller-Optimal vs Zwick with fluctuating memory capacity.
-Strategy tables: fixed (Miller@M=7, Zwick@M=∞).
+Bounded-optimal vs Zwick with fluctuating memory capacity.
+Strategy tables: fixed (Bounded@M=7, Zwick@M=∞).
 Actual capacity each turn: M_base + Uniform(-σ, +σ), clamped to [2, M_base+σ].
 """
 
@@ -21,7 +21,7 @@ def savefig(name):
 # ═══════════════════════════════════════════════════════════════
 # MOVE TABLES
 # ═══════════════════════════════════════════════════════════════
-def compute_miller_values(N_max, M):
+def compute_bounded_values(N_max, M):
     if M is None: M = 2*N_max+10
     e = {(0,0): Fraction(0)}; opt = {}
     for n in range(1, N_max+1):
@@ -71,8 +71,8 @@ def compute_miller_values(N_max, M):
     return e, opt
 
 print("Computing move tables...")
-_, MILLER_OPT = compute_miller_values(40, 7)
-_, ZWICK_OPT = compute_miller_values(40, None)
+_, BOUNDED_OPT = compute_bounded_values(40, 7)
+_, ZWICK_OPT = compute_bounded_values(40, None)
 
 # ═══════════════════════════════════════════════════════════════
 # GAME ENGINE WITH FLUCTUATING CAPACITY
@@ -198,16 +198,16 @@ def run_point(n, base, sigma, t1, t2, ng, seed, label):
 # ═══════════════════════════════════════════════════════════════
 # EXPERIMENTS
 # ═══════════════════════════════════════════════════════════════
-ng = 10000
+ng = 100000
 base = 7
 board_sizes = [8, 12, 16, 24, 36]
 sigmas = [0, 1, 2, 3, 4, 5]
 
 matchups = [
-    ("Miller v Miller", MILLER_OPT, MILLER_OPT),
+    ("Bounded v Bounded", BOUNDED_OPT, BOUNDED_OPT),
     ("Zwick v Zwick", ZWICK_OPT, ZWICK_OPT),
-    ("P1:Zwick v P2:Miller", ZWICK_OPT, MILLER_OPT),
-    ("P1:Miller v P2:Zwick", MILLER_OPT, ZWICK_OPT),
+    ("P1:Zwick v P2:Bounded", ZWICK_OPT, BOUNDED_OPT),
+    ("P1:Bounded v P2:Zwick", BOUNDED_OPT, ZWICK_OPT),
 ]
 
 all_jobs = []
@@ -257,12 +257,12 @@ for n in board_sizes:
 # ═══════════════════════════════════════════════════════════════
 # PLOTS
 # ═══════════════════════════════════════════════════════════════
-colors_m = {'Miller v Miller':'#e7298a', 'Zwick v Zwick':'#2166ac',
-            'P1:Zwick v P2:Miller':'#d6604d', 'P1:Miller v P2:Zwick':'#4dac26'}
+colors_m = {'Bounded v Bounded':'#e7298a', 'Zwick v Zwick':'#2166ac',
+            'P1:Zwick v P2:Bounded':'#d6604d', 'P1:Bounded v P2:Zwick':'#4dac26'}
 
 # ── Fig 1: P2 conditional win rate vs σ, per board size ──
 fig1, axes1 = plt.subplots(2, 3, figsize=(18, 10))
-fig1.suptitle('Effect of Memory Fluctuation on Miller vs Zwick\n'
+fig1.suptitle('Effect of Memory Fluctuation on Bounded-optimal vs Zwick\n'
               f'Base capacity M₀=7, capacity each turn = 7 ± σ | {ng} games/point',
               fontsize=14, fontweight='bold')
 
@@ -288,15 +288,15 @@ ax_leg.legend(handles=handles, fontsize=10, loc='center')
 ax_leg.axis('off')
 
 plt.tight_layout(rect=[0,0,1,0.93])
-savefig('fluctuation_miller_vs_zwick.png')
-print("\nSaved fluctuation_miller_vs_zwick.png")
+savefig('fluctuation_bounded_vs_zwick.png')
+print("\nSaved fluctuation_bounded_vs_zwick.png")
 
-# ── Fig 2: Miller advantage (Miller_v_Miller - Zwick_v_Zwick) vs σ ──
+# ── Fig 2: Bounded advantage (Bounded_v_Bounded - Zwick_v_Zwick) vs σ ──
 fig2, ax2 = plt.subplots(figsize=(12, 7))
 board_colors = plt.cm.viridis(np.linspace(0.15, 0.85, len(board_sizes)))
 
 for idx, n in enumerate(board_sizes):
-    key_mm = (n, 'Miller v Miller')
+    key_mm = (n, 'Bounded v Bounded')
     key_zz = (n, 'Zwick v Zwick')
     if key_mm not in data or key_zz not in data: continue
     diff = data[key_mm]['p2c'] - data[key_zz]['p2c']
@@ -304,11 +304,11 @@ for idx, n in enumerate(board_sizes):
              ms=7, lw=2, label=f'n={n} ({2*n} cards)')
 
 ax2.axhline(0, color='black', ls='--', lw=1.5, alpha=0.5,
-            label='Equal (Miller = Zwick)')
+            label='Equal (Bounded = Zwick)')
 ax2.set_xlabel('Memory fluctuation σ (capacity = 7 ± σ)', fontsize=12)
-ax2.set_ylabel('P2 cond. win rate: Miller minus Zwick', fontsize=12)
+ax2.set_ylabel('P2 cond. win rate: Bounded minus Zwick', fontsize=12)
 ax2.set_title('Does Fluctuation Change Which Strategy Is Better?\n'
-              '> 0 means Miller gives P2 more advantage',
+              '> 0 means Bounded gives P2 more advantage',
               fontsize=14, fontweight='bold')
 ax2.legend(fontsize=10); ax2.grid(True, alpha=0.2)
 plt.tight_layout()
@@ -319,22 +319,22 @@ print("Saved fluctuation_advantage_diff.png")
 fig3, ax3 = plt.subplots(figsize=(12, 7))
 
 for idx, n in enumerate(board_sizes):
-    # How much does Miller player gain over Zwick player?
-    key_mz = (n, 'P1:Miller v P2:Zwick')
-    key_zm = (n, 'P1:Zwick v P2:Miller')
+    # How much does Bounded-optimal player gain over Zwick player?
+    key_mz = (n, 'P1:Bounded v P2:Zwick')
+    key_zm = (n, 'P1:Zwick v P2:Bounded')
     if key_mz not in data: continue
-    # Miller advantage = gain when playing Miller as P1 against Zwick P2
+    # Bounded advantage = gain when playing bounded as P1 against Zwick P2
     ax3.plot(data[key_mz]['sigmas'], data[key_mz]['gain'],
              '-o', color=board_colors[idx], ms=6, lw=2,
-             label=f'n={n}: Miller P1 gain vs Zwick P2')
+             label=f'n={n}: Bounded P1 gain vs Zwick P2')
     ax3.plot(data[key_zm]['sigmas'], [-g for g in data[key_zm]['gain']],
              '--s', color=board_colors[idx], ms=5, lw=1.5, alpha=0.7,
-             label=f'n={n}: Miller P2 gain vs Zwick P1')
+             label=f'n={n}: Bounded P2 gain vs Zwick P1')
 
 ax3.axhline(0, color='black', ls='--', alpha=0.5)
 ax3.set_xlabel('Fluctuation σ', fontsize=12)
-ax3.set_ylabel('Miller player expected gain over Zwick player', fontsize=12)
-ax3.set_title('How Much Does Miller Beat Zwick? (by board size and fluctuation)',
+ax3.set_ylabel('Bounded-optimal player expected gain over Zwick player', fontsize=12)
+ax3.set_title('How Much Does Bounded-Optimal Beat Zwick? (by board size and fluctuation)',
               fontsize=14, fontweight='bold')
 ax3.legend(fontsize=8, ncol=2); ax3.grid(True, alpha=0.2)
 plt.tight_layout()

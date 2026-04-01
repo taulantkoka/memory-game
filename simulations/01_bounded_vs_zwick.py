@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Head-to-head: Miller-optimal strategy vs Zwick strategy
-Both players have Miller memory M=7, but one uses the optimal
+Head-to-head: Bounded-optimal strategy vs Zwick strategy
+Both players have bounded memory M=7, but one uses the optimal
 moves for M=7, the other uses Zwick's moves (designed for M=∞).
 
-The difference: at k=3,5,7 Zwick says "flip two", Miller says "flip one".
+The difference: at k=3,5,7 Zwick says "flip two", bounded-optimal says "flip one".
 """
 
 import numpy as np
@@ -24,7 +24,7 @@ def savefig(name):
 # PRECOMPUTE BOTH MOVE TABLES
 # ═══════════════════════════════════════════════════════════════
 
-def compute_miller_values(N_max, M):
+def compute_bounded_values(N_max, M):
     if M is None: M = 2 * N_max + 10
     e = {(0,0): Fraction(0)}; opt = {}
     for n in range(1, N_max+1):
@@ -85,14 +85,14 @@ def compute_miller_values(N_max, M):
 
 N = 25
 print("Computing move tables...")
-_, MILLER_OPT = compute_miller_values(N, 7)
-_, ZWICK_OPT = compute_miller_values(N, None)
+_, BOUNDED_OPT = compute_bounded_values(N, 7)
+_, ZWICK_OPT = compute_bounded_values(N, None)
 
 # Print comparison for n=12
 print("\nn=12 moves comparison:")
-print(f"  {'k':>3s}  Miller  Zwick")
+print(f"  {'k':>3s}  Bounded  Zwick")
 for k in range(13):
-    m = MILLER_OPT.get((12, k), '-')
+    m = BOUNDED_OPT.get((12, k), '-')
     z = ZWICK_OPT.get((12, k), '-')
     diff = " ← DIFFERENT" if m != z and m != '-' and z != '-' else ""
     mk = min(k, 7)
@@ -102,7 +102,7 @@ for k in range(13):
 # GAME ENGINE
 # ═══════════════════════════════════════════════════════════════
 
-class MillerMemory:
+class LRUMemory:
     def __init__(self, cap, rng):
         self.cap = cap; self.rng = rng; self.store = OrderedDict()
     def observe(self, pos, value):
@@ -122,7 +122,7 @@ def play_game(n_pairs, M, move_table_p1, move_table_p2, seed):
     cards = list(range(n_pairs)) * 2; rng.shuffle(cards)
     board = np.array(cards)
     alive = set(range(2*n_pairs))
-    mem = [MillerMemory(M, rng), MillerMemory(M, rng)]
+    mem = [LRUMemory(M, rng), LRUMemory(M, rng)]
     scores = [0, 0]; last_matcher = -1
     tables = [move_table_p1, move_table_p2]
 
@@ -234,13 +234,13 @@ def run_matchup(n, M, t1, t2, ng, seed, label):
 # MATCHUPS
 # ═══════════════════════════════════════════════════════════════
 M = 7
-ng = 10000
+ng = 100000
 
 matchups_12 = [
-    ("Miller v Miller", MILLER_OPT, MILLER_OPT),
+    ("Bounded v Bounded", BOUNDED_OPT, BOUNDED_OPT),
     ("Zwick v Zwick", ZWICK_OPT, ZWICK_OPT),
-    ("P1:Miller v P2:Zwick", MILLER_OPT, ZWICK_OPT),
-    ("P1:Zwick v P2:Miller", ZWICK_OPT, MILLER_OPT),
+    ("P1:Bounded v P2:Zwick", BOUNDED_OPT, ZWICK_OPT),
+    ("P1:Zwick v P2:Bounded", ZWICK_OPT, BOUNDED_OPT),
 ]
 
 board_sizes = [8, 10, 12, 16, 20]
@@ -280,8 +280,8 @@ for job, (label, r) in zip(all_jobs, all_res):
     data[mname]['p2ce'].append(r['p2_cond_err'])
     data[mname]['gain'].append(r['gain'])
 
-colors = {'Miller v Miller': '#e7298a', 'Zwick v Zwick': '#2166ac',
-          'P1:Miller v P2:Zwick': '#4dac26', 'P1:Zwick v P2:Miller': '#d6604d'}
+colors = {'Bounded v Bounded': '#e7298a', 'Zwick v Zwick': '#2166ac',
+          'P1:Bounded v P2:Zwick': '#4dac26', 'P1:Zwick v P2:Bounded': '#d6604d'}
 
 # Fig 1: Conditional P2 win rate
 fig1, ax1 = plt.subplots(figsize=(12, 7))
@@ -297,13 +297,13 @@ for mname in data:
 ax1.axhline(0.5, color='black', ls='--', lw=1.5, alpha=0.5)
 ax1.set_xlabel('Board size n (pairs)', fontsize=12)
 ax1.set_ylabel('P(P2 wins | someone wins)', fontsize=12)
-ax1.set_title(f'Miller-Optimal vs Zwick Strategy (M={M}, {ng} games/point)\n'
+ax1.set_title(f'Bounded-optimal vs Zwick Strategy (M={M}, {ng} games/point)\n'
               f'Who wins under limited memory?',
               fontsize=14, fontweight='bold')
 ax1.legend(fontsize=10); ax1.grid(True, alpha=0.2)
 ax1.set_ylim(0.44, 0.56)
-plt.tight_layout(); savefig('miller_vs_zwick_conditional.png')
-print("\nSaved miller_vs_zwick_conditional.png")
+plt.tight_layout(); savefig('bounded_vs_zwick_conditional.png')
+print("\nSaved bounded_vs_zwick_conditional.png")
 
 # Fig 2: Expected gain
 fig2, ax2 = plt.subplots(figsize=(12, 7))
@@ -317,23 +317,23 @@ for mname in data:
 ax2.axhline(0, color='black', ls='--', lw=1.5, alpha=0.5)
 ax2.set_xlabel('Board size n (pairs)', fontsize=12)
 ax2.set_ylabel('P1 expected gain (< 0 = P2 advantage)', fontsize=12)
-ax2.set_title(f'Expected Gain: Miller-Optimal vs Zwick (M={M})',
+ax2.set_title(f'Expected Gain: Bounded-optimal vs Zwick (M={M})',
               fontsize=14, fontweight='bold')
 ax2.legend(fontsize=10); ax2.grid(True, alpha=0.2)
-plt.tight_layout(); savefig('miller_vs_zwick_gain.png')
-print("Saved miller_vs_zwick_gain.png")
+plt.tight_layout(); savefig('bounded_vs_zwick_gain.png')
+print("Saved bounded_vs_zwick_gain.png")
 
 # Fig 3: Strategy dominance matrix at n=12
 fig3, ax3 = plt.subplots(figsize=(8, 6))
-strats = ['Miller', 'Zwick']
+strats = ['Bounded', 'Zwick']
 matrix = np.zeros((2, 2))
 for label, r in all_res:
     if 'n=12' not in label: continue
     mname = label.split(" ", 1)[1]
-    if mname == 'Miller v Miller': matrix[0,0] = r['p2_cond']
+    if mname == 'Bounded v Bounded': matrix[0,0] = r['p2_cond']
     elif mname == 'Zwick v Zwick': matrix[1,1] = r['p2_cond']
-    elif mname == 'P1:Miller v P2:Zwick': matrix[0,1] = r['p2_cond']
-    elif mname == 'P1:Zwick v P2:Miller': matrix[1,0] = r['p2_cond']
+    elif mname == 'P1:Bounded v P2:Zwick': matrix[0,1] = r['p2_cond']
+    elif mname == 'P1:Zwick v P2:Bounded': matrix[1,0] = r['p2_cond']
 
 im = ax3.imshow(matrix, cmap='RdBu', vmin=0.45, vmax=0.55)
 ax3.set_xticks([0,1]); ax3.set_yticks([0,1])
@@ -346,18 +346,18 @@ for i in range(2):
 plt.colorbar(im, ax=ax3, label='P(P2 wins | decisive)', shrink=0.8)
 ax3.set_title(f'Strategy Matrix at n=12, M={M}\nBlue=P2 wins more, Red=P1 wins more',
               fontsize=13, fontweight='bold')
-plt.tight_layout(); savefig('miller_vs_zwick_matrix.png')
-print("Saved miller_vs_zwick_matrix.png")
+plt.tight_layout(); savefig('bounded_vs_zwick_matrix.png')
+print("Saved bounded_vs_zwick_matrix.png")
 
 print("\n" + "="*70)
 print("DONE")
 print("="*70)#!/usr/bin/env python3
 """
-Head-to-head: Miller-optimal strategy vs Zwick strategy
-Both players have Miller memory M=7, but one uses the optimal
+Head-to-head: Bounded-optimal strategy vs Zwick strategy
+Both players have bounded memory M=7, but one uses the optimal
 moves for M=7, the other uses Zwick's moves (designed for M=∞).
 
-The difference: at k=3,5,7 Zwick says "flip two", Miller says "flip one".
+The difference: at k=3,5,7 Zwick says "flip two", bounded-optimal says "flip one".
 """
 
 import numpy as np
@@ -377,7 +377,7 @@ def savefig(name):
 # PRECOMPUTE BOTH MOVE TABLES
 # ═══════════════════════════════════════════════════════════════
 
-def compute_miller_values(N_max, M):
+def compute_bounded_values(N_max, M):
     if M is None: M = 2 * N_max + 10
     e = {(0,0): Fraction(0)}; opt = {}
     for n in range(1, N_max+1):
@@ -438,16 +438,16 @@ def compute_miller_values(N_max, M):
 
 N = 40
 print("Computing move tables...")
-_, MILLER_OPT = compute_miller_values(N, 7)
-_, ZWICK_OPT = compute_miller_values(N, None)
+_, BOUNDED_OPT = compute_bounded_values(N, 7)
+_, ZWICK_OPT = compute_bounded_values(N, None)
 
 # Print comparison for key board sizes
 for n_show in [12, 16, 24, 36]:
     print(f"\nn={n_show} ({2*n_show} cards) moves comparison:")
-    print(f"  {'k':>3s}  Miller  Zwick")
+    print(f"  {'k':>3s}  Bounded  Zwick")
     k_max = min(n_show, M)
     for k in range(k_max + 1):
-        m = MILLER_OPT.get((n_show, k), '-')
+        m = BOUNDED_OPT.get((n_show, k), '-')
         z = ZWICK_OPT.get((n_show, k), '-')
         diff = " ← DIFFERENT" if m != z else ""
         print(f"  k={k:2d}:   {m}       {z}{diff}")
@@ -462,7 +462,7 @@ for n_show in [12, 16, 24, 36]:
 # GAME ENGINE
 # ═══════════════════════════════════════════════════════════════
 
-class MillerMemory:
+class LRUMemory:
     def __init__(self, cap, rng):
         self.cap = cap; self.rng = rng; self.store = OrderedDict()
     def observe(self, pos, value):
@@ -482,7 +482,7 @@ def play_game(n_pairs, M, move_table_p1, move_table_p2, seed):
     cards = list(range(n_pairs)) * 2; rng.shuffle(cards)
     board = np.array(cards)
     alive = set(range(2*n_pairs))
-    mem = [MillerMemory(M, rng), MillerMemory(M, rng)]
+    mem = [LRUMemory(M, rng), LRUMemory(M, rng)]
     scores = [0, 0]; last_matcher = -1
     tables = [move_table_p1, move_table_p2]
 
@@ -594,13 +594,13 @@ def run_matchup(n, M, t1, t2, ng, seed, label):
 # MATCHUPS
 # ═══════════════════════════════════════════════════════════════
 M = 7
-ng = 10000
+ng = 100000
 
 matchups_12 = [
-    ("Miller v Miller", MILLER_OPT, MILLER_OPT),
+    ("Bounded v Bounded", BOUNDED_OPT, BOUNDED_OPT),
     ("Zwick v Zwick", ZWICK_OPT, ZWICK_OPT),
-    ("P1:Miller v P2:Zwick", MILLER_OPT, ZWICK_OPT),
-    ("P1:Zwick v P2:Miller", ZWICK_OPT, MILLER_OPT),
+    ("P1:Bounded v P2:Zwick", BOUNDED_OPT, ZWICK_OPT),
+    ("P1:Zwick v P2:Bounded", ZWICK_OPT, BOUNDED_OPT),
 ]
 
 board_sizes = [8, 12, 16, 24, 36]
@@ -640,8 +640,8 @@ for job, (label, r) in zip(all_jobs, all_res):
     data[mname]['p2ce'].append(r['p2_cond_err'])
     data[mname]['gain'].append(r['gain'])
 
-colors = {'Miller v Miller': '#e7298a', 'Zwick v Zwick': '#2166ac',
-          'P1:Miller v P2:Zwick': '#4dac26', 'P1:Zwick v P2:Miller': '#d6604d'}
+colors = {'Bounded v Bounded': '#e7298a', 'Zwick v Zwick': '#2166ac',
+          'P1:Bounded v P2:Zwick': '#4dac26', 'P1:Zwick v P2:Bounded': '#d6604d'}
 
 # Fig 1: Conditional P2 win rate
 fig1, ax1 = plt.subplots(figsize=(12, 7))
@@ -657,13 +657,13 @@ for mname in data:
 ax1.axhline(0.5, color='black', ls='--', lw=1.5, alpha=0.5)
 ax1.set_xlabel('Board size n (pairs)', fontsize=12)
 ax1.set_ylabel('P(P2 wins | someone wins)', fontsize=12)
-ax1.set_title(f'Miller-Optimal vs Zwick Strategy (M={M}, {ng} games/point)\n'
+ax1.set_title(f'Bounded-optimal vs Zwick Strategy (M={M}, {ng} games/point)\n'
               f'Who wins under limited memory?',
               fontsize=14, fontweight='bold')
 ax1.legend(fontsize=10); ax1.grid(True, alpha=0.2)
 ax1.set_ylim(0.44, 0.56)
-plt.tight_layout(); savefig('miller_vs_zwick_conditional.png')
-print("\nSaved miller_vs_zwick_conditional.png")
+plt.tight_layout(); savefig('bounded_vs_zwick_conditional.png')
+print("\nSaved bounded_vs_zwick_conditional.png")
 
 # Fig 2: Expected gain
 fig2, ax2 = plt.subplots(figsize=(12, 7))
@@ -677,24 +677,24 @@ for mname in data:
 ax2.axhline(0, color='black', ls='--', lw=1.5, alpha=0.5)
 ax2.set_xlabel('Board size n (pairs)', fontsize=12)
 ax2.set_ylabel('P1 expected gain (< 0 = P2 advantage)', fontsize=12)
-ax2.set_title(f'Expected Gain: Miller-Optimal vs Zwick (M={M})',
+ax2.set_title(f'Expected Gain: Bounded-optimal vs Zwick (M={M})',
               fontsize=14, fontweight='bold')
 ax2.legend(fontsize=10); ax2.grid(True, alpha=0.2)
-plt.tight_layout(); savefig('miller_vs_zwick_gain.png')
-print("Saved miller_vs_zwick_gain.png")
+plt.tight_layout(); savefig('bounded_vs_zwick_gain.png')
+print("Saved bounded_vs_zwick_gain.png")
 
 # Fig 3: Strategy dominance matrix at n=12
 fig3, ax3 = plt.subplots(figsize=(8, 6))
-strats = ['Miller', 'Zwick']
+strats = ['Bounded', 'Zwick']
 matrix = np.zeros((2, 2))
 n_matrix = 16  # Standard 32-card game
 for label, r in all_res:
     if f'n={n_matrix}' not in label: continue
     mname = label.split(" ", 1)[1]
-    if mname == 'Miller v Miller': matrix[0,0] = r['p2_cond']
+    if mname == 'Bounded v Bounded': matrix[0,0] = r['p2_cond']
     elif mname == 'Zwick v Zwick': matrix[1,1] = r['p2_cond']
-    elif mname == 'P1:Miller v P2:Zwick': matrix[0,1] = r['p2_cond']
-    elif mname == 'P1:Zwick v P2:Miller': matrix[1,0] = r['p2_cond']
+    elif mname == 'P1:Bounded v P2:Zwick': matrix[0,1] = r['p2_cond']
+    elif mname == 'P1:Zwick v P2:Bounded': matrix[1,0] = r['p2_cond']
 
 im = ax3.imshow(matrix, cmap='RdBu', vmin=0.45, vmax=0.55)
 ax3.set_xticks([0,1]); ax3.set_yticks([0,1])
@@ -707,8 +707,8 @@ for i in range(2):
 plt.colorbar(im, ax=ax3, label='P(P2 wins | decisive)', shrink=0.8)
 ax3.set_title(f'Strategy Matrix at n={n_matrix} (32 cards), M={M}\nBlue=P2 wins more',
               fontsize=13, fontweight='bold')
-plt.tight_layout(); savefig('miller_vs_zwick_matrix.png')
-print("Saved miller_vs_zwick_matrix.png")
+plt.tight_layout(); savefig('bounded_vs_zwick_matrix.png')
+print("Saved bounded_vs_zwick_matrix.png")
 
 print("\n" + "="*70)
 print("DONE")

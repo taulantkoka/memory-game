@@ -60,7 +60,7 @@ plt.Figure.savefig = _patched_savefig
 # ---- Analysis modules ----
 ANALYSES = {
     "00": ("Exact DP computation",              "simulations/00_exact_dp.py"),
-    "01": ("Bounded-memory optimum vs Zwick",   "simulations/01_miller_vs_zwick.py"),
+    "01": ("Bounded-memory optimum vs Zwick",   "simulations/01_bounded_vs_zwick.py"),
     "02": ("Fluctuation robustness",            "simulations/02_fluctuation.py"),
     "03": ("Asymmetric memory",                 "simulations/03_asymmetric.py"),
     "04": ("Draw rate vs capacity",             "simulations/04_draw_rate.py"),
