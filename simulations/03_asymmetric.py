@@ -41,12 +41,12 @@ def compute_bounded_values(N_max, M):
                 if k < M: v1 = p*(1+e[(n-1,min(k-1,M))]) - q*e[(n,min(k+1,M))]
                 else: v1 = p*(1+e[(n-1,M-1)])/(1+q) if (1+q)!=0 else Fraction(0)
             else: v1 = None
-            d2 = 2*n-k-1
+            d2 = (2*n-M) if k == M else (2*n-k-1)
             if d2 > 0:
                 k_prime=min(k+1,M); k_lucky=k if k<M else M-1
                 k_auto=k if k<M else M-1; k_nm2=min(k+2,M)
                 fl=Fraction(1,d2); fa=Fraction(k_prime-1,d2) if k_prime>=1 else Fraction(0)
-                nk1=n-k-1; fn=Fraction(2*nk1,d2) if nk1>0 else Fraction(0)
+                nk1=(n-M) if k == M else (n-k-1); fn=Fraction(2*nk1,d2) if nk1>0 else Fraction(0)
                 first=p*(1+e[(n-1,min(k-1,M))]) if k>=1 else Fraction(0)
                 ik=fl*(1+e[(n-1,min(k_lucky,M))]); ia=fa*(1+e[(n-1,min(k_auto,M))])
                 if k_nm2!=k and (n,k_nm2) in e:

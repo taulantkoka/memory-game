@@ -201,12 +201,15 @@ def compute_bounded_values(N_max, M):
                 e1[(n, k)] = v1_solved
                 
                 # e^2 at k=M:
-                if d2 > 0:
+                # After first-card miss + LRU eviction, the evicted card
+                # re-enters the unknown pool. Net unknowns = 2n - M (not 2n-M-1).
+                d2_boundary = 2 * n - M
+                if d2_boundary > 0:
                     k_prime = M  # min(k+1, M) = M
-                    frac_lucky = Fraction(1, d2)
-                    frac_auto = Fraction(M - 1, d2)
-                    nk1 = n - k - 1
-                    frac_new2 = Fraction(2 * nk1, d2) if nk1 > 0 else Fraction(0)
+                    frac_lucky = Fraction(1, d2_boundary)
+                    frac_auto = Fraction(M - 1, d2_boundary)
+                    nk1 = n - M
+                    frac_new2 = Fraction(2 * nk1, d2_boundary) if nk1 > 0 else Fraction(0)
                     
                     inner_known = frac_lucky * (1 + e[(n - 1, min(M - 1, M))])  # k_lucky = M-1
                     inner_auto = frac_auto * (1 + e[(n - 1, min(M - 1, M))])    # k_auto = M-1
