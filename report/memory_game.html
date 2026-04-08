@@ -30,9 +30,13 @@ function computeMoveTable(nMax,M){
       let v1=null;
       if(k>=1){if(k<M)v1=p*(1+(e.get(`${n-1},${Math.min(k-1,M)}`)||0))-q*(e.get(`${n},${Math.min(k+1,M)}`)||0);
       else{const d=1+q;v1=d!==0?p*(1+(e.get(`${n-1},${M-1}`)||0))/d:0}}
-      let v2=0;const d2=2*n-k-1;
+      // FIX: at k=M, eviction returns one card to the unknown pool,
+      // so d2 = 2n-M (not 2n-M-1) and double-miss count = 2(n-M) (not 2(n-M-1))
+      let v2=0;const d2=(k===M)?(2*n-M):(2*n-k-1);
       if(d2>0){const kP=Math.min(k+1,M),kL=k<M?k:M-1,kA=k<M?k:M-1,kN=Math.min(k+2,M);
-        const fl=1/d2,fa=kP>=1?(kP-1)/d2:0,nk1=n-k-1,fn=nk1>0?2*nk1/d2:0;
+        const fl=1/d2,fa=kP>=1?(kP-1)/d2:0;
+        const nk1=(k===M)?(n-M):(n-k-1);
+        const fn=nk1>0?2*nk1/d2:0;
         const first=k>=1?p*(1+(e.get(`${n-1},${Math.min(k-1,M)}`)||0)):0;
         const ik=fl*(1+(e.get(`${n-1},${Math.min(kL,M)}`)||0)),ia=fa*(1+(e.get(`${n-1},${Math.min(kA,M)}`)||0));
         if(kN!==k&&e.has(`${n},${kN}`))v2=first+q*(ik-ia-fn*e.get(`${n},${kN}`));
@@ -75,9 +79,15 @@ function playHeadless(nP,m1,m2,t1,t2){
     const mp=mem[cur].findMatch(v1,c1);
     if(mp!==null&&alive.has(mp)){fl(mp);if(deck[mp]===v1){rm(c1,mp,cur);continue}cur=1-cur;continue}
     if(mv===1){const kn=aa.filter(p=>mem[cur].knows(p)&&p!==c1);if(kn.length>0)fl(pick(kn));cur=1-cur}
-    else{const u2=unk.filter(p=>p!==c1);const c2=u2.length>0?pick(u2):pick(aa.filter(p=>p!==c1));const v2=fl(c2);
-      if(v1===v2){rm(c1,c2,cur);continue}
-      const opp=1-cur,om=mem[opp].findMatch(v2,c2);if(om!==null&&alive.has(om)){fl(om);if(deck[om]===v2)rm(c2,om,opp)}
+    else{
+      // Convention B: peek at card2 before committing to memory
+      const u2=unk.filter(p=>p!==c1);const c2=u2.length>0?pick(u2):pick(aa.filter(p=>p!==c1));
+      const v2=deck[c2]; // peek only
+      if(v1===v2){rm(c1,c2,cur);continue} // lucky match: card2 never enters memory
+      // auto-take: check BEFORE card2 enters memory
+      const opp=1-cur,om=mem[opp].findMatch(v2,c2);
+      if(om!==null&&alive.has(om)&&deck[om]===v2){fl(om);rm(c2,om,opp)}
+      else{fl(c2)} // double miss: card2 enters memory now
       cur=1-cur}}return sc}
 
 function Sel({label,value,onChange,options}){
@@ -181,12 +191,40 @@ function App(){
           log(idle.includes(c2)?"Idle flip (known).":"Second flip.");
           setTimeout(()=>{setFlipped(f=>{const nf=new Set(f);nf.delete(c1);nf.delete(c2);return nf});setBotBusy(false);setTurn(0);log("Your turn!")},DELAY.noMatch)},DELAY.flip)}
         else{setBotBusy(false);setTurn(0);log("Your turn!")}
-      }else{const u2=unk.filter(p=>p!==c1);const c2=u2.length>0?pick(u2):pick(aa.filter(p=>p!==c1));
-        setTimeout(()=>{setFlipped(f=>new Set([...f,c2]));const v2=cRef.current[c2];mem.observe(c2,v2);setBotMemState(mem.clone());
-          if(v1===v2){log("Lucky match!");setTimeout(()=>{const nm=new Set(mRef.current);nm.add(c1);nm.add(c2);mRef.current=nm;setMatched(nm);setScores(s=>[s[0],s[1]+1]);
-            mem.forgetPos(c1);mem.forgetPos(c2);setBotMemState(mem.clone());setHl(new Set([c1,c2]));setTimeout(()=>setHl(new Set()),500);
-            if(nm.size===cRef.current.length){setGameOver(true);setBotBusy(false);log("Game over!")}else setBotBusy(false)},DELAY.match)}
-          else{log("Two unknowns, no match.");setTimeout(()=>{setFlipped(f=>{const nf=new Set(f);nf.delete(c1);nf.delete(c2);return nf});setBotBusy(false);setTurn(0);log("Your turn!")},DELAY.noMatch)}
+      }else{
+        // Convention B: peek at card2 before committing to memory
+        const u2=unk.filter(p=>p!==c1);const c2=u2.length>0?pick(u2):pick(aa.filter(p=>p!==c1));
+        const v2=cRef.current[c2]; // peek only
+        setTimeout(()=>{setFlipped(f=>new Set([...f,c2])); // show card visually
+          if(v1===v2){
+            // Lucky match: card2 never enters memory
+            log("Lucky match!");
+            setTimeout(()=>{const nm=new Set(mRef.current);nm.add(c1);nm.add(c2);mRef.current=nm;setMatched(nm);setScores(s=>[s[0],s[1]+1]);
+              mem.forgetPos(c1);mem.forgetPos(c2);setBotMemState(mem.clone());setHl(new Set([c1,c2]));setTimeout(()=>setHl(new Set()),500);
+              if(nm.size===cRef.current.length){setGameOver(true);setBotBusy(false);log("Game over!")}else setBotBusy(false)},DELAY.match)}
+          else{
+            // Check auto-take BEFORE card2 enters memory (Convention B)
+            // In interactive mode, bot is always player 1, human is player 0
+            const omPos=mem.findMatch(v2,c2);
+            if(omPos!==null&&al.has(omPos)&&cRef.current[omPos]===v2){
+              log("You auto-take a pair!");
+              mem.observe(omPos,cRef.current[omPos]); // reveal the matching card
+              setBotMemState(mem.clone());
+              setTimeout(()=>{setFlipped(f=>new Set([...f,omPos]));
+                setTimeout(()=>{
+                  const nm=new Set(mRef.current);nm.add(c2);nm.add(omPos);mRef.current=nm;setMatched(nm);
+                  setScores(s=>[s[0]+1,s[1]]); // human (player 0) auto-takes
+                  mem.forgetPos(c2);mem.forgetPos(omPos);setBotMemState(mem.clone());
+                  setHl(new Set([c2,omPos]));setTimeout(()=>setHl(new Set()),500);
+                  if(nm.size===cRef.current.length){setGameOver(true);setBotBusy(false);log("Game over!")}
+                  else{setBotBusy(false);setTurn(0);log("Your turn!")}
+                },DELAY.match)},DELAY.flip)}
+            else{
+              // Double miss: NOW card2 enters memory
+              log("Two unknowns, no match.");
+              mem.observe(c2,v2);setBotMemState(mem.clone());
+              setTimeout(()=>{setFlipped(f=>{const nf=new Set(f);nf.delete(c1);nf.delete(c2);return nf});setBotBusy(false);setTurn(0);log("Your turn!")},DELAY.noMatch)}
+          }
         },DELAY.flip)}
     },DELAY.think)
   },[turn,gameOver,botBusy,mode,aliveSet,log]);
